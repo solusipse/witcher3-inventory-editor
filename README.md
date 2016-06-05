@@ -1,0 +1,1 @@
+# witcher3-inventory-editor

@@ -30,3 +30,7 @@
 
 # Debug files
 *.dSYM/
+
+main
+*.sav
+decomp_*.sav

@@ -1,3 +1,4 @@
+#include <string.h>
 
 const char *outPrefix = "decomp_";
 
@@ -57,4 +58,9 @@ char *w3_outputFilename( char *filename ) {
     strcat( fileout, filename );
 
     return fileout;
+}
+
+int checkMagicNumber( struct SaveFile *f, char *mnum ) {
+    printf("%s\n", mnum);
+    return memcmp( &f->contents[ f->pos ], mnum, strlen(mnum) );
 }

@@ -1,13 +1,11 @@
-static int checkSaveHeader( struct SaveFile *f ) {
-    f->pos = 4;
-    return strncmp( f->contents, "SAV3", 4 );
-}
-
 static void calculateOffsets( struct SaveFile *f, int *variableTable, int *stringTable ) {
     // goto end
     f->pos = f->len - 6;
     *variableTable = readInt32( f );
     *stringTable = *variableTable - 10;
+
+    f->pos = *variableTable;
+
 
     // TODO: check if next 2 chars are "SE" (magic number)
 }
@@ -23,7 +21,11 @@ int w3_parseFile( char *filename ) {
         return -1;
     }
 
-    if ( checkSaveHeader( &f ) != 0 ) {
+    // calculate header's end
+    f.pos = readInt32( &f );
+
+    if ( checkMagicNumber( &f, "SAV3" ) != 0 ) {
+        puts( "Not valid Witcher 3 save file!");
         free( f.contents );
         return -1;
     }
@@ -39,8 +41,13 @@ int w3_parseFile( char *filename ) {
 
 
     printf( "%d, %d\n", nmSectionOffset, rbSectionOffset );
+    f.pos = nmSectionOffset;
 
-
+    if ( checkMagicNumber( &f, "NM" ) != 0 ) {
+        puts( "Not valid Witcher 3 save file!" );
+        free( f.contents );
+        return -2;
+    }
 
     free( f.contents );
 

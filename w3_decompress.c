@@ -77,11 +77,11 @@ int w3_decompressSaveFile( char *filename ) {
 
     // set header to zeros (except first 4 bytes which is
     // header's offet) to maintain offsets addresses
-    /*
     char *emptyHeader = calloc( headerOffset - 4, 1 );
     fwrite( &headerOffset, sizeof(headerOffset), 1, s );
     fwrite( emptyHeader, headerOffset - 4, 1, s );
-    */
+    free( emptyHeader );
+
     for ( int i = 0; i < chunksNumber; i++ ) {
         char *input = malloc( headers[i].compressedSize );
         read( &f, input, headers[i].compressedSize );

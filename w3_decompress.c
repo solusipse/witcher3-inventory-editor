@@ -4,38 +4,14 @@
 #include <stdint.h>
 
 #include "lz4.h"
+#include "w3_commons.c"
 
-struct SaveFile {
-    FILE *file;
-    char *contents;
-
-    int len;
-    int pos;
-};
 
 struct ChunkHeader {
     int compressedSize;
     int decompressedSize;
     int end;
 };
-
-static struct SaveFile openSaveFile( char *path ) {
-    struct SaveFile f = { NULL, NULL, 0, 0 };
-    f.file = fopen( path, "rb" );
-
-    if ( f.file == NULL ) {
-        printf( "File %s does not exist.\n", path );
-        return f;
-    }
-
-    // set length
-    fseek( f.file, 0, SEEK_END );
-    f.len = ftell( f.file );
-    // goto file beginning
-    fseek( f.file, 0, SEEK_SET );
-
-    return f;
-}
 
 static int cleanup( struct SaveFile *f, FILE *s, struct ChunkHeader *headers ) {
     free( headers );
@@ -52,40 +28,6 @@ static int checkHeader( struct SaveFile *f ) {
     return strncmp( f->contents, "SNFHFZLC", 8 );
 }
 
-/*
-int32_t readInt32( struct SaveFile *f ) {
-    int32_t v = *(uint32_t *) &f->contents[ f->pos ];
-    f->pos += 4;
-    return v;
-}
-*/
-
-static uint32_t readInt32( struct SaveFile *f ) {
-    uint32_t v =
-        ((unsigned char) f->contents[ f->pos   ]      ) +
-        ((unsigned char) f->contents[ f->pos+1 ] << 8 ) +
-        ((unsigned char) f->contents[ f->pos+2 ] << 16) +
-        ((unsigned char) f->contents[ f->pos+3 ] << 24);
-
-    f->pos += 4;
-    return v;
-}
-
-static void read( struct SaveFile *f, char *dest, int size ) {
-    memcpy( dest, &f->contents[f->pos], size );
-    f->pos += size;
-}
-
-char *w3_outputFilename( char *filename ) {
-    // remember to free
-    char *prefix = "decomp_";
-    char *fileout = malloc( strlen(filename) + strlen(prefix) + 1 );
-    strcpy( fileout, prefix );
-    strcat( fileout, filename );
-
-    return fileout;
-}
-
 int w3_decompressSaveFile( char *filename ) {
 
     struct SaveFile f = openSaveFile( filename );
@@ -94,11 +36,6 @@ int w3_decompressSaveFile( char *filename ) {
     }
 
     printf( "Decompressing file: %s\n", filename );
-
-    f.contents = malloc( (f.len + 1) * sizeof(char) );
-    fread( f.contents, f.len, 1, f.file );
-
-    fclose( f.file );
 
     int ch = checkHeader( &f );
     if ( ch != 0 ) {
@@ -137,7 +74,14 @@ int w3_decompressSaveFile( char *filename ) {
     }
 
     free( fileout );
-    
+
+    // set header to zeros (except first 4 bytes which is
+    // header's offet) to maintain offsets addresses
+    /*
+    char *emptyHeader = calloc( headerOffset - 4, 1 );
+    fwrite( &headerOffset, sizeof(headerOffset), 1, s );
+    fwrite( emptyHeader, headerOffset - 4, 1, s );
+    */
     for ( int i = 0; i < chunksNumber; i++ ) {
         char *input = malloc( headers[i].compressedSize );
         read( &f, input, headers[i].compressedSize );
@@ -162,6 +106,7 @@ int w3_decompressSaveFile( char *filename ) {
         printf( "Decompressed chunk: %d. Compressed size: %d, decompressed size: %d, offset: %d.\n",
                 i, headers[i].compressedSize, headers[i].decompressedSize, headers[i].end);
 
+        // write contents
         fwrite( out, headers[i].decompressedSize, 1, s );
 
         free( input );

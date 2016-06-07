@@ -1,4 +1,5 @@
 #include "w3_decompress.c"
+#include "w3_parse.c"
 
 int main( int argc, char *argv[] ) {
 
@@ -8,7 +9,12 @@ int main( int argc, char *argv[] ) {
     }
 
     for ( int i = 1; i < argc; i++ ) {
-        w3_decompressSaveFile( argv[i] );
+        int s;
+        s = w3_decompressSaveFile( argv[i] );
+        if ( s != 0 ) {
+            continue;
+        }
+        w3_parseFile( argv[i] );
     }
 
     return 0;

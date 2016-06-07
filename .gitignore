@@ -35,3 +35,4 @@ main
 *.sav
 decomp_*.sav
 *.swp
+.DS_Store

@@ -45,6 +45,7 @@ int w3_compressSaveFile( char *filename ) {
     }
 
     // copy header to the new file (to maintain offset addresses)
+    // TODO: write new header (it wont work in current state)
     fwrite( f.contents, 1, headerOffset, s );
 
     for ( int i = 0; i < chunksNumber; i++ ) {

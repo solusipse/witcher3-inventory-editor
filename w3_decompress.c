@@ -60,7 +60,7 @@ int w3_decompressSaveFile( char *filename ) {
     // add decomp_ prefix for the output file
     char *fileout = w3_outputFilename( filename );
 
-    FILE *s = fopen( fileout, "w" );
+    FILE *s = fopen( fileout, "wb" );
     if ( s == NULL ) {
         puts( "Could not save output!" );
         free( fileout );
@@ -71,9 +71,9 @@ int w3_decompressSaveFile( char *filename ) {
 
     // set header to zeros (except first 4 bytes which is
     // header's offet) to maintain offsets addresses
-    char *emptyHeader = calloc( headerOffset - 4, 1 );
+    char *emptyHeader = calloc( headerOffset - sizeof(headerOffset), 1 );
     fwrite( &headerOffset, sizeof(headerOffset), 1, s );
-    fwrite( emptyHeader, headerOffset - 4, 1, s );
+    fwrite( emptyHeader, headerOffset - sizeof(headerOffset), 1, s );
     free( emptyHeader );
 
     for ( int i = 0; i < chunksNumber; i++ ) {
@@ -101,8 +101,7 @@ int w3_decompressSaveFile( char *filename ) {
                 i, headers[i].compressedSize, headers[i].decompressedSize, headers[i].end);
 
         // write contents
-        size_t sizeOut = fwrite( out, headers[i].decompressedSize, 1, s );
-        if ( sizeOut != 1 ) {
+        if ( fwrite(out, sizeof(char), headers[i].decompressedSize, s) != headers[i].decompressedSize ) {
             puts( "Write error!" );
             cleanup( &f, s, headers );
             return -1;

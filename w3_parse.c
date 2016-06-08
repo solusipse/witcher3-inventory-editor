@@ -1,13 +1,15 @@
-static void calculateOffsets( struct SaveFile *f, int *variableTable, int *stringTable ) {
+int calculateOffsets( struct SaveFile *f, int *variableTable, int *stringTable ) {
     // goto end
     f->pos = f->len - 6;
     *variableTable = readInt32( f );
     *stringTable = *variableTable - 10;
 
-    f->pos = *variableTable;
+    if ( checkMagicNumber(f, "SE") != 0 ) {
+        puts( "Not valid Witcher 3 save file!" );
+        return -1;
+    }
 
-
-    // TODO: check if next 2 chars are "SE" (magic number)
+    return 0;
 }
 
 int w3_parseFile( char *filename ) {
@@ -24,25 +26,24 @@ int w3_parseFile( char *filename ) {
     // calculate header's end
     f.pos = readInt32( &f );
 
-    if ( checkMagicNumber( &f, "SAV3" ) != 0 ) {
+    if ( checkMagicNumber(&f, "SAV3") != 0 ) {
         puts( "Not valid Witcher 3 save file!");
         free( f.contents );
         return -1;
     }
 
     int variableTableOffset, stringTableOffset;
-    calculateOffsets( &f, &variableTableOffset, &stringTableOffset );
-
-    printf( "%d, %d\n", variableTableOffset, stringTableOffset );
+    if ( calculateOffsets( &f, &variableTableOffset, &stringTableOffset ) != 0 ) {
+        puts( "Not valid Witcher 3 save file!" );
+        free( f.contents );
+        return -2;
+    }
 
     f.pos = stringTableOffset;
     int nmSectionOffset = readInt32( &f );
     int rbSectionOffset = readInt32( &f );
 
-
-    printf( "%d, %d\n", nmSectionOffset, rbSectionOffset );
     f.pos = nmSectionOffset;
-
     if ( checkMagicNumber( &f, "NM" ) != 0 ) {
         puts( "Not valid Witcher 3 save file!" );
         free( f.contents );

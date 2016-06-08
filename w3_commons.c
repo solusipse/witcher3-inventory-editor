@@ -62,5 +62,7 @@ char *w3_outputFilename( char *filename ) {
 
 int checkMagicNumber( struct SaveFile *f, char *mnum ) {
     printf("%s\n", mnum);
-    return memcmp( &f->contents[ f->pos ], mnum, strlen(mnum) );
+    int s = memcmp( &f->contents[ f->pos ], mnum, strlen(mnum) );
+    f->pos += strlen( mnum );
+    return s;
 }

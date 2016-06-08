@@ -15,9 +15,11 @@ int main( int argc, char *argv[] ) {
         if ( s != 0 ) {
             continue;
         }
+        /*
         char *o = w3_outputFilename( argv[i] );
         w3_compressSaveFile( o );
         free( o );
+        */
         //w3_parseFile( argv[i] );
     }
 

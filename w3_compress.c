@@ -15,8 +15,13 @@ int w3_compressSaveFile( char *filename ) {
         return 1;
     }
 
-    int chunksNumber = readInt32( &f );
-    int headerOffset = readInt32( &f );
+    const int maxChunkSize = 1048576;
+    const int chunksNumber = f.len / maxChunkSize + 1;
+    printf("%d, %d, %d\n", maxChunkSize, f.len, chunksNumber);
+
+    // goto headerOffset
+    f.pos += 4;
+    const int headerOffset = readInt32( &f );
 
     // alloc memory for the header
     struct ChunkHeader *headers = malloc( chunksNumber * sizeof(struct ChunkHeader) );
@@ -44,33 +49,50 @@ int w3_compressSaveFile( char *filename ) {
         return -1;
     }
 
-    // copy header to the new file (to maintain offset addresses)
-    // TODO: write new header (it wont work in current state)
+    // copy old header to the new file
     fwrite( f.contents, 1, headerOffset, s );
 
     for ( int i = 0; i < chunksNumber; i++ ) {
-        char *input = malloc( headers[i].decompressedSize );
-        char *out = malloc( headers[i].compressedSize );
+        int chunkSize = maxChunkSize;
 
-        read( &f, input, headers[i].decompressedSize );
-        int result = LZ4_compress_default( input, out, headers[i].decompressedSize, headers[i].compressedSize );
-
-        if ( result != headers[i].compressedSize ) {
-            puts( "Compression error!" );
-            cleanup( &f, s, headers );
-
-            return -1;
+        if ( f.len - f.pos < maxChunkSize ) {
+            chunkSize = f.len - f.pos;
         }
 
-        printf( "Decompressed chunk: %d. Compressed size: %d, decompressed size: %d, offset: %d.\n",
-                i, headers[i].compressedSize, headers[i].decompressedSize, headers[i].end);
+        char *input = malloc( chunkSize );
+        char *out = malloc( chunkSize );
+        
+        read( &f, input, headers[i].decompressedSize );
+        
+        int sizeOut = LZ4_compress_fast( input, out, chunkSize, chunkSize, 1 );
+        printf( "Compressed chunk: %d. Compressed size: %d.\n", i, sizeOut);
+
+        headers[i].decompressedSize = chunkSize;
+        headers[i].compressedSize = sizeOut;
+        headers[i].end = f.pos;
 
         // write contents
-        fwrite(out, sizeof(char), headers[i].compressedSize, s);
-
+        fwrite(out, sizeof(char), sizeOut, s);
+        
         free( input );
         free( out );
     }
+
+    // write new header
+    fseek( s, 8, 0 );
+    fwrite( &chunksNumber, sizeof(chunksNumber), 1, s );
+    fwrite( &headerOffset, sizeof(headerOffset), 1, s );
+
+    for ( int i = 0; i < chunksNumber; i++ ) {
+        fwrite( &headers[i].compressedSize, sizeof(int), 1, s );
+        fwrite( &headers[i].decompressedSize, sizeof(int), 1, s );
+        fwrite( &headers[i].end, sizeof(int), 1, s );
+    }
+
+    // fill rest of the header with zeros
+    const int rest = headerOffset - ftell( s );
+    char *b = calloc( rest, 1 );
+    fwrite( b, 1, rest, s );
 
     cleanup( &f, s, headers );
 

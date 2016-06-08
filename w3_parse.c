@@ -59,15 +59,29 @@ int w3_parseFile( char *filename ) {
         free( f.contents );
         return -2;
     }
-    int count = readInt32( &f );
+    int rbCount = readInt32( &f );
 
-    for ( int i = 0; i < count; i++ ) {
-        printf("%d\n", readInt16( &f ));
-        printf("%d\n", readInt32( &f ));
+    struct rbEntry {
+        uint16_t size;
+        uint32_t offset;
+    };
+
+    struct rbEntry *rbEntries = malloc( rbCount * sizeof(struct rbEntry) );
+
+    for ( int i = 0; i < rbCount; i++ ) {
+        rbEntries[i].size   = readInt16( &f );
+        rbEntries[i].offset = readInt32( &f );
+        /*
+        printf("%d\n", rbEntries[i].size);
+        printf("%d\n", rbEntries[i].offset);
+        */
     }
 
-
+    free( rbEntries  );
     free( f.contents );
+
+    // read variable name section
+    f.pos = stringTableOffset;
 
     return 0;
 }

@@ -70,7 +70,7 @@ char *w3_outputFilename( char *filename ) {
 }
 
 int checkMagicNumber( struct SaveFile *f, char *mnum ) {
-    printf("%s\n", mnum);
+    //printf("%s\n", mnum);
     if ( f->pos >= f->len ) {
         return -1;
     }
@@ -78,3 +78,4 @@ int checkMagicNumber( struct SaveFile *f, char *mnum ) {
     f->pos += strlen( mnum );
     return s;
 }
+

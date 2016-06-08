@@ -1,4 +1,5 @@
 #include "w3_decompress.c"
+#include "w3_compress.c"
 #include "w3_parse.c"
 
 int main( int argc, char *argv[] ) {
@@ -14,7 +15,10 @@ int main( int argc, char *argv[] ) {
         if ( s != 0 ) {
             continue;
         }
-        w3_parseFile( argv[i] );
+        char *o = w3_outputFilename( argv[i] );
+        w3_compressSaveFile( o );
+        free( o );
+        //w3_parseFile( argv[i] );
     }
 
     return 0;

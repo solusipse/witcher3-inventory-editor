@@ -1,36 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-
-#include "lz4.h"
-#include "w3_commons.c"
 
 
-struct ChunkHeader {
-    int compressedSize;
-    int decompressedSize;
-    int end;
-};
-
-static int cleanup( struct SaveFile *f, FILE *s, struct ChunkHeader *headers ) {
-    free( headers );
-    free( f->contents );
-
-    fclose( s );
-    fclose( f->file );
-
-    return 0;
-}
-
-int w3_decompressSaveFile( char *filename ) {
+int w3_compressSaveFile( char *filename ) {
+    // TODO: factor
 
     struct SaveFile f = openSaveFile( filename );
     if ( f.file == NULL ) {
         return -1;
     }
 
-    printf( "Decompressing file: %s\n", filename );
+    printf( "Compressing file: %s\n", filename );
 
     if ( checkMagicNumber( &f, "SNFHFZLC" ) != 0 ) {
         puts( "Invalid save file!" );
@@ -58,36 +36,26 @@ int w3_decompressSaveFile( char *filename ) {
     f.pos = headerOffset;
 
     // add decomp_ prefix for the output file
-    char *fileout = w3_outputFilename( filename );
+    char *fileout = "compressed.sav";
 
     FILE *s = fopen( fileout, "wb" );
     if ( s == NULL ) {
         puts( "Could not save output!" );
-        free( fileout );
         return -1;
     }
 
-    free( fileout );
-
     // copy header to the new file (to maintain offset addresses)
-    printf("%d\n", fwrite( f.contents, 1, headerOffset, s ));
+    fwrite( f.contents, 1, headerOffset, s );
 
     for ( int i = 0; i < chunksNumber; i++ ) {
-        char *input = malloc( headers[i].compressedSize );
-        read( &f, input, headers[i].compressedSize );
+        char *input = malloc( headers[i].decompressedSize );
+        char *out = malloc( headers[i].compressedSize );
 
-        if ( f.pos != headers[i].end && headers[i].end != 0 ) {
-            puts( "File reading error!" );
-            cleanup( &f, s, headers );
+        read( &f, input, headers[i].decompressedSize );
+        int result = LZ4_compress_default( input, out, headers[i].decompressedSize, headers[i].compressedSize );
 
-            return -1;
-        }
-
-        char *out = malloc( headers[i].decompressedSize );
-        int result = LZ4_decompress_fast( input, out, headers[i].decompressedSize );
-
-        if ( headers[i].compressedSize != result || (( i == chunksNumber - 1 ) && result < 0) ) {
-            puts( "Decompression error!" );
+        if ( result != headers[i].compressedSize ) {
+            puts( "Compression error!" );
             cleanup( &f, s, headers );
 
             return -1;
@@ -97,11 +65,7 @@ int w3_decompressSaveFile( char *filename ) {
                 i, headers[i].compressedSize, headers[i].decompressedSize, headers[i].end);
 
         // write contents
-        if ( fwrite(out, sizeof(char), headers[i].decompressedSize, s) != headers[i].decompressedSize ) {
-            puts( "Write error!" );
-            cleanup( &f, s, headers );
-            return -1;
-        }
+        fwrite(out, sizeof(char), headers[i].compressedSize, s);
 
         free( input );
         free( out );
@@ -109,8 +73,8 @@ int w3_decompressSaveFile( char *filename ) {
 
     cleanup( &f, s, headers );
 
-    puts("Decompressed succesfully.");
+    puts("Compressed succesfully.");
+
 
     return 0;
-
 }

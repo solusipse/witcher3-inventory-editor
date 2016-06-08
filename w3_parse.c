@@ -23,7 +23,15 @@ int w3_parseFile( char *filename ) {
         return -1;
     }
 
-    // calculate header's end
+    if ( checkMagicNumber( &f, "SNFHFZLC" ) != 0 ) {
+        puts( "Invalid save file!" );
+        return 1;
+    }
+
+    // goto place when header's offset is stored
+    f.pos += 4;
+
+    // get header's offset
     f.pos = readInt32( &f );
 
     if ( checkMagicNumber(&f, "SAV3") != 0 ) {

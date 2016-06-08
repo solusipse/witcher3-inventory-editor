@@ -52,6 +52,8 @@ int w3_compressSaveFile( char *filename ) {
     // copy old header to the new file
     fwrite( f.contents, 1, headerOffset, s );
 
+    int outPos = headerOffset;
+
     for ( int i = 0; i < chunksNumber; i++ ) {
         int chunkSize = maxChunkSize;
 
@@ -67,9 +69,11 @@ int w3_compressSaveFile( char *filename ) {
         int sizeOut = LZ4_compress_fast( input, out, chunkSize, chunkSize, 1 );
         printf( "Compressed chunk: %d. Compressed size: %d.\n", i, sizeOut);
 
+        outPos += sizeOut;
+
         headers[i].decompressedSize = chunkSize;
         headers[i].compressedSize = sizeOut;
-        headers[i].end = f.pos;
+        headers[i].end = outPos;
 
         // write contents
         fwrite(out, sizeof(char), sizeOut, s);

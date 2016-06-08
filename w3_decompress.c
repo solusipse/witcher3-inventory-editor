@@ -23,11 +23,6 @@ static int cleanup( struct SaveFile *f, FILE *s, struct ChunkHeader *headers ) {
     return 0;
 }
 
-static int checkHeader( struct SaveFile *f ) {
-    f->pos = 8;
-    return strncmp( f->contents, "SNFHFZLC", 8 );
-}
-
 int w3_decompressSaveFile( char *filename ) {
 
     struct SaveFile f = openSaveFile( filename );
@@ -37,8 +32,7 @@ int w3_decompressSaveFile( char *filename ) {
 
     printf( "Decompressing file: %s\n", filename );
 
-    int ch = checkHeader( &f );
-    if ( ch != 0 ) {
+    if ( checkMagicNumber( &f, "SNFHFZLC" ) != 0 ) {
         puts( "Invalid save file!" );
         return 1;
     }
@@ -96,7 +90,7 @@ int w3_decompressSaveFile( char *filename ) {
         char *out = malloc( headers[i].decompressedSize );
         int result = LZ4_decompress_fast( input, out, headers[i].decompressedSize );
 
-        if ( headers[i].compressedSize != result || result < 0 ) {
+        if ( headers[i].compressedSize != result || (( i == chunksNumber - 1 ) && result < 0) ) {
             puts( "Decompression error!" );
             cleanup( &f, s, headers );
 
@@ -107,7 +101,12 @@ int w3_decompressSaveFile( char *filename ) {
                 i, headers[i].compressedSize, headers[i].decompressedSize, headers[i].end);
 
         // write contents
-        fwrite( out, headers[i].decompressedSize, 1, s );
+        size_t sizeOut = fwrite( out, headers[i].decompressedSize, 1, s );
+        if ( sizeOut != 1 ) {
+            puts( "Write error!" );
+            cleanup( &f, s, headers );
+            return -1;
+        }
 
         free( input );
         free( out );
@@ -115,7 +114,7 @@ int w3_decompressSaveFile( char *filename ) {
 
     cleanup( &f, s, headers );
 
-    puts( "Success.\n" );
+    puts("Decompressed succesfully.");
 
     return 0;
 

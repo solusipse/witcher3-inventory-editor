@@ -43,12 +43,29 @@ int w3_parseFile( char *filename ) {
     int nmSectionOffset = readInt32( &f );
     int rbSectionOffset = readInt32( &f );
 
+    // read NM section
     f.pos = nmSectionOffset;
     if ( checkMagicNumber( &f, "NM" ) != 0 ) {
         puts( "Not valid Witcher 3 save file!" );
         free( f.contents );
         return -2;
     }
+    stringTableOffset = f.pos;
+
+    // read RB section
+    f.pos = rbSectionOffset;
+    if ( checkMagicNumber( &f, "RB" ) != 0 ) {
+        puts( "Not valid Witcher 3 save file!" );
+        free( f.contents );
+        return -2;
+    }
+    int count = readInt32( &f );
+
+    for ( int i = 0; i < count; i++ ) {
+        printf("%d\n", readInt16( &f ));
+        printf("%d\n", readInt32( &f ));
+    }
+
 
     free( f.contents );
 

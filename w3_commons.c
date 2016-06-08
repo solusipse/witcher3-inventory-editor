@@ -46,6 +46,15 @@ uint32_t readInt32( struct SaveFile *f ) {
     return v;
 }
 
+uint16_t readInt16( struct SaveFile *f ) {
+    uint16_t v =
+        ((uint16_t) f->contents[ f->pos   ]      ) +
+        ((uint16_t) f->contents[ f->pos+1 ] << 8 );
+
+    f->pos += 2;
+    return v;
+}
+
 void read( struct SaveFile *f, char *dest, int size ) {
     memcpy( dest, &f->contents[f->pos], size );
     f->pos += size;
